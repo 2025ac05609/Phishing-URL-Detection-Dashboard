@@ -153,7 +153,10 @@ if uploaded_test_data is not None:
         st.metric("Columns", uploaded_dataset.shape[1])
 
 # Separate Features and Target
-    test_features = uploaded_dataset.drop("label", axis=1)
+    test_features = uploaded_dataset.drop(
+        ["URL", "label"],
+        axis=1
+    )
     test_labels = uploaded_dataset["label"]
 
     # Apply Feature Scaling
@@ -569,40 +572,32 @@ if uploaded_test_data is not None:
 
     st.subheader("📥 Download Prediction Results")
 
-# Create results dataframe
-    results_df = uploaded_dataset.copy()
+    prediction_results = pd.DataFrame({
+        "URL": uploaded_dataset["URL"],
 
-    results_df["Predicted Label"] = predicted_labels
+        "Actual Label": test_labels.map({
+            0: "Legitimate URL",
+            1: "Phishing URL"
+        }),
 
-# Convert numeric labels into readable text
-    results_df["Actual Label"] = results_df["label"].map({
-        0: "Legitimate URL",
-        1: "Phishing URL"
+        "Predicted Label": pd.Series(predicted_labels).map({
+            0: "Legitimate URL",
+            1: "Phishing URL"
+        })
     })
 
-    results_df["Predicted Label"] = results_df["Predicted Label"].map({
-        0: "Legitimate URL",
-        1: "Phishing URL"
-    })
-
-# Rearrange columns so labels appear first
-    results_df.drop(columns=["label"], inplace=True)
-    prediction_results = results_df[
-        ["Actual Label", "Predicted Label"] +
-        [col for col in results_df.columns
-         if col not in ["Actual Label", "Predicted Label"]]
-    ]
-
+# Display preview
     st.dataframe(
-        prediction_results.head(),
+        prediction_results.head(20),
         use_container_width=True
     )
 
+# Download button
     csv = prediction_results.to_csv(index=False).encode("utf-8")
 
     st.download_button(
-        label="📥 Download Prediction Results (CSV)",
+        label="📥 Download Prediction Results",
         data=csv,
-        file_name=f"{selected_model.lower().replace(' ', '_')}_predictions.csv",
+        file_name="prediction_results.csv",
         mime="text/csv"
-    )
+)
